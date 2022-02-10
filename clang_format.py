@@ -292,9 +292,25 @@ class ClangFormatCommand(sublime_plugin.TextCommand):
 
         viewport_position_before = self.view.viewport_position()
 
+        # Take a backup of the current selection and view size
+        old_sel = list(self.view.sel())
+        old_size = self.view.size()
+
         self.view.replace(
             edit, sublime.Region(0, self.view.size()),
             output.decode(encoding))
+
+        self.view.sel().clear()
+
+        # Restore the selection so that the Region's end will be adjusted
+        # according to the new file size.
+        for r in old_sel:
+            if r.a < r.b:
+                r_new = sublime.Region(r.a, self.view.size() - (old_size - r.b))
+            else:
+                r_new = sublime.Region(self.view.size() - (old_size - r.a), r.b)
+
+            self.view.sel().add(r_new)
 
         # Bugfix: Since Sublime Text 4, the view started jumping to the right
         # passed the content after formatting. This additional line improves
